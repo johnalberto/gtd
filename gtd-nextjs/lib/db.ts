@@ -31,7 +31,7 @@ export async function getTasks(userId: string = DEFAULT_USER_ID, filters?: {
 
     if (filters?.due_date) {
         query += ` AND due_date::date = $${paramIndex}::date`;
-        params.push(filters.due_date);
+        params.push(filters.due_date.toISOString().split('T')[0]); // Convert to YYYY-MM-DD
         paramIndex++;
     }
 
@@ -97,6 +97,9 @@ export async function createTask(data: {
     due_date?: Date;
     context_ids?: string[];
 }, userId: string = DEFAULT_USER_ID) {
+    // Convert Date to ISO string if provided
+    const dueDateValue = data.due_date ? data.due_date.toISOString() : null;
+
     const { rows } = await sql`
     INSERT INTO tasks (
       user_id, title, notes, status, priority, is_actionable, 
@@ -110,7 +113,7 @@ export async function createTask(data: {
       ${data.is_actionable ?? null},
       ${data.project_id || null}, 
       ${data.parent_task_id || null}, 
-      ${data.due_date || null}
+      ${dueDateValue}
     )
     RETURNING *
   `;
@@ -129,6 +132,7 @@ export async function createTask(data: {
 
     return task;
 }
+
 
 export async function updateTask(id: string, data: Partial<{
     title: string;
@@ -183,12 +187,12 @@ export async function updateTask(id: string, data: Partial<{
     }
     if (data.due_date !== undefined) {
         updates.push(`due_date = $${paramIndex}`);
-        values.push(data.due_date);
+        values.push(data.due_date ? data.due_date.toISOString() : null);
         paramIndex++;
     }
     if (data.completed_at !== undefined) {
         updates.push(`completed_at = $${paramIndex}`);
-        values.push(data.completed_at);
+        values.push(data.completed_at ? data.completed_at.toISOString() : null);
         paramIndex++;
     }
 
