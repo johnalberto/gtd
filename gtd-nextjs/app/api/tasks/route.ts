@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    console.log('API POST /tasks received body:', JSON.stringify(body, null, 2));
 
     if (!body.title) {
       return NextResponse.json(
@@ -44,6 +45,7 @@ export async function POST(request: NextRequest) {
       parent_task_id: body.parent_task_id,
       due_date: body.due_date ? new Date(body.due_date) : undefined,
       context_ids: body.context_ids,
+      reminders: body.reminders ? body.reminders.map((r: string) => new Date(r)) : undefined,
     });
 
     return NextResponse.json({ success: true, data: task }, { status: 201 });

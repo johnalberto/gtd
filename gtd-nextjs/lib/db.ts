@@ -13,7 +13,17 @@ export async function getTasks(userId: string = DEFAULT_USER_ID, filters?: {
     project_id?: string;
     due_date?: Date;
 }) {
-    let query = `SELECT * FROM tasks WHERE user_id = $1`;
+    let query = `
+        SELECT tasks.*, 
+        COALESCE(
+            (SELECT json_agg(r ORDER BY r.reminder_time ASC) 
+             FROM reminders r 
+             WHERE r.task_id = tasks.id), 
+            '[]'
+        ) as reminders
+        FROM tasks 
+        WHERE user_id = $1
+    `;
     const params: any[] = [userId];
     let paramIndex = 2;
 
@@ -78,11 +88,18 @@ export async function getTaskWithRelations(id: string, userId: string = DEFAULT_
   `;
     const subtasks = subtaskRows as Task[];
 
+    // Get reminders
+    const { rows: reminderRows } = await sql`
+    SELECT * FROM reminders WHERE task_id = ${id} ORDER BY reminder_time ASC
+    `;
+    const reminders = reminderRows as import('./types').Reminder[];
+
     return {
         ...task,
         project,
         contexts,
         subtasks,
+        reminders,
     } as TaskWithRelations;
 }
 
@@ -96,14 +113,35 @@ export async function createTask(data: {
     parent_task_id?: string;
     due_date?: Date;
     context_ids?: string[];
+    reminders?: Date[];
 }, userId: string = DEFAULT_USER_ID) {
+    // ... (existing position logic) ...
     // Convert Date to ISO string if provided
     const dueDateValue = data.due_date ? data.due_date.toISOString() : null;
+
+    // Calculate new position (append to end of list)
+    let positionResult;
+    if (data.parent_task_id) {
+        positionResult = await sql`
+            SELECT COALESCE(MAX(position), 0) + 1000 as new_pos 
+            FROM tasks 
+            WHERE parent_task_id = ${data.parent_task_id}
+              AND user_id = ${userId}
+        `;
+    } else {
+        positionResult = await sql`
+            SELECT COALESCE(MAX(position), 0) + 1000 as new_pos 
+            FROM tasks 
+            WHERE parent_task_id IS NULL
+              AND user_id = ${userId}
+        `;
+    }
+    const newPosition = positionResult.rows[0].new_pos;
 
     const { rows } = await sql`
     INSERT INTO tasks (
       user_id, title, notes, status, priority, is_actionable, 
-      project_id, parent_task_id, due_date
+      project_id, parent_task_id, due_date, position
     ) VALUES (
       ${userId}, 
       ${data.title}, 
@@ -113,7 +151,8 @@ export async function createTask(data: {
       ${data.is_actionable ?? null},
       ${data.project_id || null}, 
       ${data.parent_task_id || null}, 
-      ${dueDateValue}
+      ${dueDateValue},
+      ${newPosition}
     )
     RETURNING *
   `;
@@ -130,7 +169,17 @@ export async function createTask(data: {
         }
     }
 
-    return task;
+    // Add reminders if provided
+    if (data.reminders && data.reminders.length > 0) {
+        for (const reminderTime of data.reminders) {
+            await sql`
+                INSERT INTO reminders (task_id, reminder_time)
+                VALUES (${task.id}, ${reminderTime.toISOString()})
+            `;
+        }
+    }
+
+    return (await getTaskWithRelations(task.id, userId)) as TaskWithRelations;
 }
 
 
@@ -142,14 +191,17 @@ export async function updateTask(id: string, data: Partial<{
     is_actionable: boolean;
     project_id: string;
     parent_task_id: string;
+    position: number;
     due_date: Date;
     completed_at: Date;
     context_ids: string[];
+    reminders: Date[];
 }>, userId: string = DEFAULT_USER_ID) {
     const updates: string[] = [];
     const values: any[] = [];
     let paramIndex = 1;
 
+    // ... (existing update logic) ...
     if (data.title !== undefined) {
         updates.push(`title = $${paramIndex}`);
         values.push(data.title);
@@ -195,6 +247,11 @@ export async function updateTask(id: string, data: Partial<{
         values.push(data.completed_at ? data.completed_at.toISOString() : null);
         paramIndex++;
     }
+    if (data.position !== undefined) {
+        updates.push(`position = $${paramIndex}`);
+        values.push(data.position);
+        paramIndex++;
+    }
 
     updates.push(`updated_at = NOW()`);
 
@@ -219,7 +276,18 @@ export async function updateTask(id: string, data: Partial<{
         }
     }
 
-    return rows[0] as Task;
+    // Update reminders if provided (Replace all)
+    if (data.reminders !== undefined) {
+        await sql`DELETE FROM reminders WHERE task_id = ${id}`;
+        for (const reminderTime of data.reminders) {
+            await sql`
+                INSERT INTO reminders (task_id, reminder_time)
+                VALUES (${id}, ${reminderTime.toISOString()})
+            `;
+        }
+    }
+
+    return (await getTaskWithRelations(rows[0].id, userId)) as TaskWithRelations;
 }
 
 export async function deleteTask(id: string, userId: string = DEFAULT_USER_ID) {
@@ -255,10 +323,11 @@ export async function createProject(data: {
     name: string;
     description?: string;
     color?: string;
+    status?: string;
 }, userId: string = DEFAULT_USER_ID) {
     const { rows } = await sql`
-    INSERT INTO projects (user_id, name, description, color)
-    VALUES (${userId}, ${data.name}, ${data.description || null}, ${data.color || null})
+    INSERT INTO projects (user_id, name, description, color, status)
+    VALUES (${userId}, ${data.name}, ${data.description || null}, ${data.color || null}, ${data.status || 'active'})
     RETURNING *
   `;
     return rows[0] as Project;
@@ -268,6 +337,7 @@ export async function updateProject(id: string, data: Partial<{
     name: string;
     description: string;
     color: string;
+    status: string;
 }>, userId: string = DEFAULT_USER_ID) {
     const updates: string[] = [];
     const values: any[] = [];
@@ -286,6 +356,11 @@ export async function updateProject(id: string, data: Partial<{
     if (data.color !== undefined) {
         updates.push(`color = $${paramIndex}`);
         values.push(data.color);
+        paramIndex++;
+    }
+    if (data.status !== undefined) {
+        updates.push(`status = $${paramIndex}`);
+        values.push(data.status);
         paramIndex++;
     }
 
@@ -379,6 +454,36 @@ export async function deleteContext(id: string, userId: string = DEFAULT_USER_ID
     await sql`
     DELETE FROM contexts 
     WHERE id = ${id} AND user_id = ${userId}
+  `;
+    return { success: true };
+}
+
+// ============================================================================
+// REMINDERS
+// ============================================================================
+
+export async function getReminders(taskId: string) {
+    const { rows } = await sql`
+    SELECT * FROM reminders 
+    WHERE task_id = ${taskId}
+    ORDER BY reminder_time ASC
+  `;
+    return rows as import('./types').Reminder[];
+}
+
+export async function createReminder(taskId: string, reminderTime: Date) {
+    const { rows } = await sql`
+    INSERT INTO reminders (task_id, reminder_time)
+    VALUES (${taskId}, ${reminderTime.toISOString()})
+    RETURNING *
+  `;
+    return rows[0] as import('./types').Reminder;
+}
+
+export async function deleteReminder(id: string) {
+    await sql`
+    DELETE FROM reminders 
+    WHERE id = ${id}
   `;
     return { success: true };
 }

@@ -50,6 +50,8 @@ export async function PUT(
       due_date: body.due_date ? new Date(body.due_date) : undefined,
       completed_at: body.completed_at ? new Date(body.completed_at) : undefined,
       context_ids: body.context_ids,
+      position: body.position,
+      reminders: body.reminders ? body.reminders.map((r: string) => new Date(r)) : undefined,
     });
 
     return NextResponse.json({ success: true, data: task });

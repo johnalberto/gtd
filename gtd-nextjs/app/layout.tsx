@@ -13,6 +13,10 @@ export const metadata: Metadata = {
   description: "Gestiona tus tareas con el método Getting Things Done",
 };
 
+import { SettingsProvider } from "@/contexts/SettingsContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+import ReminderMonitor from "@/components/ReminderMonitor";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -21,9 +25,14 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className={`${inter.variable} antialiased`}>
-        <TaskProvider>
-          {children}
-        </TaskProvider>
+        <SettingsProvider>
+          <AuthProvider>
+            <TaskProvider>
+              <ReminderMonitor />
+              {children}
+            </TaskProvider>
+          </AuthProvider>
+        </SettingsProvider>
       </body>
     </html>
   );

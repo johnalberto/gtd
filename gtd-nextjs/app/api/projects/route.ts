@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
             name: body.name,
             description: body.description,
             color: body.color,
+            status: body.status,
         });
 
         return NextResponse.json({ success: true, data: project }, { status: 201 });

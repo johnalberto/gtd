@@ -5,10 +5,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
     Inbox, Sun, CheckSquare, Layers,
-    Tag, Archive, Clock, PlusCircle
+    Tag, Archive, Clock, PlusCircle, Calendar, Users
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTasks } from '@/contexts/TaskContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface NavItemProps {
     href: string;
@@ -48,6 +49,7 @@ interface SidebarProps {
 
 export default function Sidebar({ onNewTask }: SidebarProps) {
     const { tasks, projects } = useTasks();
+    const { isAdmin } = useAuth();
 
     // Count inbox tasks
     const inboxCount = tasks.filter(t => t.status === 'inbox').length;
@@ -77,6 +79,8 @@ export default function Sidebar({ onNewTask }: SidebarProps) {
 
                 <NavItem href="/inbox" icon={<Inbox size={20} />} label="Inbox" count={inboxCount} />
                 <NavItem href="/today" icon={<Sun size={20} className="text-yellow-500" />} label="Hoy" count={todayCount} />
+                <NavItem href="/upcoming" icon={<Calendar size={20} className="text-violet-500" />} label="Próximos" />
+                <NavItem href="/calendar" icon={<Calendar size={20} className="text-blue-500" />} label="Calendario" />
                 <NavItem href="/next-actions" icon={<CheckSquare size={20} className="text-green-500" />} label="Siguiente Acción" />
 
                 <div className="pt-4 pb-2">
@@ -98,6 +102,28 @@ export default function Sidebar({ onNewTask }: SidebarProps) {
                 <NavItem href="/contexts" icon={<Tag size={20} />} label="Contextos" />
                 <NavItem href="/waiting" icon={<Clock size={20} />} label="En Espera" />
                 <NavItem href="/someday" icon={<Archive size={20} />} label="Algún día" />
+
+                {isAdmin && (
+                    <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+                        <div className="px-3 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Admin
+                        </div>
+                        <NavItem href="/admin/users" icon={<Users size={20} />} label="Usuarios" />
+                    </div>
+                )}
+
+                <div className="pt-4 mt-auto border-t border-gray-200 dark:border-gray-700">
+                    <button
+                        onClick={() => {
+                            // Dynamic import to avoid SSR issues if needed, or just standard signout
+                            import('next-auth/react').then(({ signOut }) => signOut());
+                        }}
+                        className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded-md transition-colors w-full"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" x2="9" y1="12" y2="12" /></svg>
+                        <span className="flex-1 text-left">Cerrar Sesión</span>
+                    </button>
+                </div>
             </nav>
         </aside>
     );

@@ -14,7 +14,7 @@ export default function ProjectsPage() {
     const { projects, addProject, updateProject, deleteProject } = useTasks();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProject, setEditingProject] = useState<any>(null);
-    const [formData, setFormData] = useState({ name: '', description: '', color: '#3B82F6' });
+    const [formData, setFormData] = useState({ name: '', description: '', color: '#3B82F6', status: 'active' });
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -25,7 +25,7 @@ export default function ProjectsPage() {
         }
         setIsModalOpen(false);
         setEditingProject(null);
-        setFormData({ name: '', description: '', color: '#3B82F6' });
+        setFormData({ name: '', description: '', color: '#3B82F6', status: 'active' });
     };
 
     const handleEdit = (project: any) => {
@@ -33,7 +33,8 @@ export default function ProjectsPage() {
         setFormData({
             name: project.name,
             description: project.description || '',
-            color: project.color || '#3B82F6'
+            color: project.color || '#3B82F6',
+            status: project.status || 'active'
         });
         setIsModalOpen(true);
     };
@@ -62,14 +63,14 @@ export default function ProjectsPage() {
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {projects.length === 0 ? (
+                    {projects.filter(p => p.status === 'active' || !p.status).length === 0 ? (
                         <div className="col-span-full text-center py-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                             <p className="text-gray-500 dark:text-gray-400">
-                                No hay proyectos aún. ¡Crea uno!
+                                No hay proyectos activos.
                             </p>
                         </div>
                     ) : (
-                        projects.map(project => (
+                        projects.filter(p => p.status === 'active' || !p.status).map(project => (
                             <Link
                                 key={project.id}
                                 href={`/project/${project.id}`}
@@ -123,7 +124,7 @@ export default function ProjectsPage() {
                 onClose={() => {
                     setIsModalOpen(false);
                     setEditingProject(null);
-                    setFormData({ name: '', description: '', color: '#3B82F6' });
+                    setFormData({ name: '', description: '', color: '#3B82F6', status: 'active' });
                 }}
                 title={editingProject ? 'Editar Proyecto' : 'Nuevo Proyecto'}
             >
@@ -155,6 +156,21 @@ export default function ProjectsPage() {
                             onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                             className="h-10 w-full rounded-md border border-slate-300"
                         />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Estado
+                        </label>
+                        <select
+                            value={formData.status}
+                            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                        >
+                            <option value="active">Activo</option>
+                            <option value="waiting">En Espera</option>
+                            <option value="someday">Algún Día</option>
+                            <option value="archived">Archivado</option>
+                        </select>
                     </div>
                     <div className="flex gap-2 justify-end">
                         <Button

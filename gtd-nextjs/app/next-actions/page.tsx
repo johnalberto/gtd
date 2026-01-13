@@ -7,7 +7,7 @@ export default function NextActionsPage() {
         <TaskView
             title="Próximas Acciones"
             description="Tareas accionables que puedes hacer ahora"
-            filterFn={(task) => task.status === 'next-actions' && task.is_actionable === true}
+            filterFn={(task) => task.status === 'next-actions' || (task.status === 'inbox' && task.is_actionable === true)}
             emptyMessage="No hay próximas acciones definidas"
         />
     );

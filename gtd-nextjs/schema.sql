@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   is_actionable BOOLEAN,
   project_id UUID REFERENCES projects(id) ON DELETE SET NULL,
   parent_task_id UUID REFERENCES tasks(id) ON DELETE CASCADE,
+  position DOUBLE PRECISION DEFAULT 0,
   due_date TIMESTAMP,
   completed_at TIMESTAMP,
   notified BOOLEAN DEFAULT FALSE,

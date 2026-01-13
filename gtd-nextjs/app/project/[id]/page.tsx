@@ -1,17 +1,24 @@
 'use client';
 
-import React, { use } from 'react';
+import React, { use, useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { useTasks } from '@/contexts/TaskContext';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
-import { ArrowLeft, Trash2, Edit, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Trash2, Edit, CheckCircle2, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { formatDate, getPriorityColor } from '@/lib/utils';
+import TaskModal from '@/components/modals/TaskModal';
+import TaskTree from '@/components/tasks/TaskTree';
+import type { Task } from '@/lib/types';
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const { tasks, projects, updateTask, deleteTask } = useTasks();
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+    const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+    const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
 
     const project = projects.find(p => p.id === id);
     const projectTasks = tasks.filter(t => t.project_id === id);
@@ -27,6 +34,24 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         if (confirm('¿Estás seguro de eliminar esta tarea?')) {
             await deleteTask(taskId);
         }
+    };
+
+    const handleEditTask = (task: Task) => {
+        setSelectedTask(task);
+        setModalMode('edit');
+        setIsEditModalOpen(true);
+    };
+
+    const handleCreateTask = () => {
+        setSelectedTask(null);
+        setModalMode('create');
+        // Initial parent ID is the currently selected task in the tree, if any
+
+        setIsEditModalOpen(true);
+    };
+
+    const handleCloseEditModal = () => {
+        setIsEditModalOpen(false);
     };
 
     if (!project) {
@@ -78,66 +103,42 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             <p className="text-gray-500 dark:text-gray-400">
                                 No hay tareas en este proyecto
                             </p>
+                            <Button className="mt-4" onClick={handleCreateTask}>
+                                Crear primera tarea
+                            </Button>
                         </div>
                     ) : (
-                        projectTasks.map(task => (
-                            <div
-                                key={task.id}
-                                className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow"
+                        <>
+                            <TaskTree
+                                tasks={projectTasks}
+                                onUpdateTask={updateTask}
+                                onDeleteTask={deleteTask}
+                                onEditTask={handleEditTask}
+                                onSelectTask={setSelectedParentId}
+                                selectedTaskId={selectedParentId}
+                            />
+                            <Button
+                                variant="ghost"
+                                className="w-full justify-start text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 mt-2"
+                                onClick={handleCreateTask}
                             >
-                                <div className="flex items-start justify-between gap-4">
-                                    <div className="flex-1">
-                                        <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                                            {task.title}
-                                        </h3>
-                                        {task.notes && (
-                                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                                {task.notes}
-                                            </p>
-                                        )}
-                                        <div className="flex items-center gap-2 mt-2">
-                                            <Badge className={getPriorityColor(task.priority)}>
-                                                {task.priority}
-                                            </Badge>
-                                            {task.due_date && (
-                                                <span className="text-xs text-gray-500">
-                                                    Vence: {formatDate(task.due_date)}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-2">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => handleCompleteTask(task.id)}
-                                            title="Completar"
-                                        >
-                                            <CheckCircle2 size={18} />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            title="Editar"
-                                        >
-                                            <Edit size={18} />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => handleDeleteTask(task.id)}
-                                            title="Eliminar"
-                                        >
-                                            <Trash2 size={18} className="text-red-500" />
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
-                        ))
+                                <Plus size={18} className="mr-2" />
+                                {selectedParentId ? "Añadir subtarea" : "Añadir tarea"}
+                            </Button>
+                        </>
                     )}
                 </div>
             </div>
+
+            {/* Task Modal */}
+            <TaskModal
+                isOpen={isEditModalOpen}
+                onClose={handleCloseEditModal}
+                task={selectedTask}
+                mode={modalMode}
+                initialProjectId={project.id}
+                initialParentId={selectedParentId || undefined}
+            />
         </AppLayout>
     );
 }

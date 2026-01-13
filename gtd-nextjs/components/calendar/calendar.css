@@ -1,0 +1,44 @@
+/* Custom overrides for react-big-calendar */
+
+.rbc-calendar {
+    font-family: inherit;
+}
+
+.rbc-toolbar button {
+    color: #4b5563; /* text-gray-600 */
+    border: 1px solid #e5e7eb; /* border-gray-200 */
+}
+
+.rbc-toolbar button:active, .rbc-toolbar button.rbc-active {
+    background-color: #f3f4f6; /* bg-gray-100 */
+    color: #111827; /* text-gray-900 */
+    box-shadow: none;
+}
+
+.rbc-toolbar button:hover {
+    background-color: #f9fafb; /* hover:bg-gray-50 */
+}
+
+.rbc-header {
+    padding: 8px 4px;
+    font-weight: 600;
+    color: #374151; /* text-gray-700 */
+}
+
+.rbc-off-range-bg {
+    background-color: #f9fafb; /* bg-gray-50 */
+}
+
+/* Dark mode overrides (naive implementation - usually requires .dark class scope) */
+@media (prefers-color-scheme: dark) {
+    /* If your app uses a .dark class on body/html, use that selector instead */
+}
+
+/* Better styling for events */
+.rbc-event {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.rbc-today {
+    background-color: #eff6ff; /* bg-blue-50 */
+}

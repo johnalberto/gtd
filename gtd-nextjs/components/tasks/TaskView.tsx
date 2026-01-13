@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { useTasks } from '@/contexts/TaskContext';
 import Button from '@/components/ui/Button';
@@ -8,21 +8,26 @@ import Badge from '@/components/ui/Badge';
 import { Trash2, Edit, CheckCircle2 } from 'lucide-react';
 import { formatDate, getPriorityColor } from '@/lib/utils';
 import type { Task } from '@/lib/types';
+import TaskModal from '@/components/modals/TaskModal';
 
 interface TaskViewProps {
     title: string;
     description: string;
     filterFn: (task: Task) => boolean;
     emptyMessage?: string;
+    children?: React.ReactNode;
 }
 
 export default function TaskView({
     title,
     description,
     filterFn,
-    emptyMessage = '¡No hay tareas aquí!'
+    emptyMessage = '¡No hay tareas aquí!',
+    children
 }: TaskViewProps) {
     const { tasks, updateTask, deleteTask } = useTasks();
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
     const filteredTasks = tasks.filter(filterFn);
 
@@ -31,6 +36,16 @@ export default function TaskView({
             status: 'completed',
             completed_at: new Date(),
         });
+    };
+
+    const handleEditTask = (task: Task) => {
+        setSelectedTask(task);
+        setIsEditModalOpen(true);
+    };
+
+    const handleCloseEditModal = () => {
+        setIsEditModalOpen(false);
+        setSelectedTask(null);
     };
 
     const handleDeleteTask = async (taskId: string) => {
@@ -52,6 +67,8 @@ export default function TaskView({
                 <p className="text-gray-600 dark:text-gray-400">
                     {description}
                 </p>
+
+                {children}
 
                 <div className="space-y-2">
                     {filteredTasks.length === 0 ? (
@@ -100,6 +117,7 @@ export default function TaskView({
                                         <Button
                                             variant="ghost"
                                             size="icon"
+                                            onClick={() => handleEditTask(task)}
                                             title="Editar"
                                         >
                                             <Edit size={18} />
@@ -119,6 +137,14 @@ export default function TaskView({
                     )}
                 </div>
             </div>
+
+            {/* Edit Task Modal */}
+            <TaskModal
+                isOpen={isEditModalOpen}
+                onClose={handleCloseEditModal}
+                task={selectedTask}
+                mode="edit"
+            />
         </AppLayout>
     );
 }

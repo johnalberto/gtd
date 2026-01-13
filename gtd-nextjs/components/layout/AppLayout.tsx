@@ -6,6 +6,8 @@ import Header from './Header';
 import TaskModal from '@/components/modals/TaskModal';
 import { cn } from '@/lib/utils';
 
+import { useRouter } from 'next/navigation';
+
 interface AppLayoutProps {
     children: React.ReactNode;
 }
@@ -13,6 +15,7 @@ interface AppLayoutProps {
 export default function AppLayout({ children }: AppLayoutProps) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+    const router = useRouter();
 
     return (
         <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden">
@@ -36,7 +39,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                 <Header
                     onMenuClick={() => setIsMobileMenuOpen(true)}
-                    onSettingsClick={() => {/* TODO: Settings modal */ }}
+                    onSettingsClick={() => router.push('/settings')}
                 />
 
                 <main className="flex-1 overflow-y-auto p-4 lg:p-8">

@@ -12,7 +12,7 @@ export default function InboxPage() {
     const { tasks, updateTask, deleteTask } = useTasks();
     const [selectedTask, setSelectedTask] = useState<string | null>(null);
 
-    const inboxTasks = tasks.filter(t => t.status === 'inbox');
+    const inboxTasks = tasks.filter(t => t.status === 'inbox' && !t.project_id);
 
     const handleCompleteTask = async (taskId: string) => {
         await updateTask(taskId, {

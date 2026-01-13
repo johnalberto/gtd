@@ -38,6 +38,7 @@ export async function PUT(
             name: body.name,
             description: body.description,
             color: body.color,
+            status: body.status,
         });
 
         return NextResponse.json({ success: true, data: project });

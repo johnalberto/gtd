@@ -12,13 +12,14 @@ interface TaskContextType {
     fetchProjects: () => Promise<void>;
     fetchContexts: () => Promise<void>;
     addTask: (data: any) => Promise<Task | null>;
-    updateTask: (id: string, data: any) => Promise<void>;
+    updateTask: (id: string, data: any) => Promise<Task | null>;
     deleteTask: (id: string) => Promise<void>;
     addProject: (data: any) => Promise<Project | null>;
-    updateProject: (id: string, data: any) => Promise<void>;
+    updateProject: (id: string, data: any) => Promise<Project | null>;
     deleteProject: (id: string) => Promise<void>;
     addContext: (data: any) => Promise<ContextType | null>;
-    updateContext: (id: string, data: any) => Promise<void>;
+    updateContext: (id: string, data: any) => Promise<ContextType | null>;
+
     deleteContext: (id: string) => Promise<void>;
 }
 
@@ -108,9 +109,12 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
             const result = await response.json();
             if (result.success) {
                 setTasks(prev => prev.map(t => t.id === id ? result.data : t));
+                return result.data;
             }
+            return null;
         } catch (error) {
             console.error('Error updating task:', error);
+            return null;
         }
     }, []);
 
@@ -160,9 +164,12 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
             const result = await response.json();
             if (result.success) {
                 setProjects(prev => prev.map(p => p.id === id ? result.data : p));
+                return result.data;
             }
+            return null;
         } catch (error) {
             console.error('Error updating project:', error);
+            return null;
         }
     }, []);
 
@@ -212,9 +219,12 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
             const result = await response.json();
             if (result.success) {
                 setContexts(prev => prev.map(c => c.id === id ? result.data : c));
+                return result.data;
             }
+            return null;
         } catch (error) {
             console.error('Error updating context:', error);
+            return null;
         }
     }, []);
 
