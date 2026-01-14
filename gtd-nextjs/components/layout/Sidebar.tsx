@@ -26,17 +26,24 @@ function NavItem({ href, icon, label, count }: NavItemProps) {
         <Link
             href={href}
             className={cn(
-                "flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-full transition-all duration-200",
+                "flex items-center gap-4 px-5 py-3.5 text-base font-medium rounded-full transition-all duration-200", // Increased gap, padding, font size
                 isActive
                     ? "bg-[#E6F6FF] text-[#0070BA] dark:bg-blue-900/30 dark:text-blue-300"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800"
             )}
         >
-            {icon}
-            <span className="flex-1">{label}</span>
+            <div className="flex-shrink-0">
+                {/* Clone icon to increase size if it's a valid element, or just assume the passed icon has its own size. 
+                   Actually, the icon is passed as a node. We can't easily resize it here unless we clone it or the parent sets context.
+                   Wait, the usage passes `size={20}`. I should update the usages below.
+                   For now, let's just update the container.
+                */}
+                {icon}
+            </div>
+            <span className="flex-1 text-base">{label}</span>
             {count !== undefined && count > 0 && (
                 <span className={cn(
-                    "px-2 py-0.5 text-xs rounded-full font-semibold",
+                    "px-2.5 py-0.5 text-xs rounded-full font-semibold",
                     isActive
                         ? "bg-[#BFE8FF] text-[#005ea6] dark:bg-blue-800 dark:text-blue-200"
                         : "bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
@@ -75,20 +82,20 @@ export default function Sidebar({ onNewTask }: SidebarProps) {
                 <div className="mb-8 px-2">
                     <button
                         onClick={onNewTask}
-                        className="w-full flex items-center justify-center gap-2 px-6 py-3.5 text-white bg-[#003087] hover:bg-[#00256b] rounded-full transition-all shadow-md hover:shadow-lg font-semibold text-sm transform active:scale-95"
+                        className="w-full flex items-center justify-center gap-3 px-6 py-4 text-white bg-[#003087] hover:bg-[#00256b] rounded-full transition-all shadow-md hover:shadow-lg font-bold text-base transform active:scale-95"
                     >
-                        <PlusCircle size={20} />
+                        <PlusCircle size={22} />
                         <span>Nueva Tarea</span>
                     </button>
                 </div>
 
                 <div className="space-y-1">
-                    <NavItem href="/inbox" icon={<Inbox size={20} />} label="Inbox" count={inboxCount} />
-                    <NavItem href="/today" icon={<Sun size={20} className="text-yellow-500" />} label="Hoy" count={todayCount} />
-                    <NavItem href="/upcoming" icon={<Calendar size={20} className="text-violet-500" />} label="Próximos" />
-                    <NavItem href="/calendar" icon={<Calendar size={20} className="text-blue-500" />} label="Calendario" />
-                    <NavItem href="/next-actions" icon={<CheckSquare size={20} className="text-green-500" />} label="Siguiente Acción" />
-                    <NavItem href="/filters" icon={<Filter size={20} className="text-[#0070BA]" />} label="Filtros" />
+                    <NavItem href="/inbox" icon={<Inbox size={24} />} label="Inbox" count={inboxCount} />
+                    <NavItem href="/today" icon={<Sun size={24} className="text-yellow-500" />} label="Hoy" count={todayCount} />
+                    <NavItem href="/upcoming" icon={<Calendar size={24} className="text-violet-500" />} label="Próximos" />
+                    <NavItem href="/calendar" icon={<Calendar size={24} className="text-blue-500" />} label="Calendario" />
+                    <NavItem href="/next-actions" icon={<CheckSquare size={24} className="text-green-500" />} label="Siguiente Acción" />
+                    <NavItem href="/filters" icon={<Filter size={24} className="text-[#0070BA]" />} label="Filtros" />
                 </div>
 
                 <div className="pt-6 pb-2">
@@ -101,7 +108,7 @@ export default function Sidebar({ onNewTask }: SidebarProps) {
                     <div className="space-y-1">
                         {projects && projects.length > 0 ? (
                             projects.map(p => (
-                                <NavItem key={p.id} href={`/project/${p.id}`} icon={<Layers size={18} />} label={p.name} />
+                                <NavItem key={p.id} href={`/project/${p.id}`} icon={<Layers size={22} />} label={p.name} />
                             ))
                         ) : (
                             <div className="px-4 py-2 text-sm text-gray-400 italic">Sin proyectos</div>
@@ -111,9 +118,9 @@ export default function Sidebar({ onNewTask }: SidebarProps) {
 
                 <div className="space-y-1 pt-4">
                     <div className="px-4 mb-2 text-xs font-bold text-gray-400 uppercase tracking-widest">Etiquetas</div>
-                    <NavItem href="/contexts" icon={<Tag size={18} />} label="Contextos" />
-                    <NavItem href="/waiting" icon={<Clock size={18} />} label="En Espera" />
-                    <NavItem href="/someday" icon={<Archive size={18} />} label="Algún día" />
+                    <NavItem href="/contexts" icon={<Tag size={22} />} label="Contextos" />
+                    <NavItem href="/waiting" icon={<Clock size={22} />} label="En Espera" />
+                    <NavItem href="/someday" icon={<Archive size={22} />} label="Algún día" />
                 </div>
 
                 {isAdmin && (

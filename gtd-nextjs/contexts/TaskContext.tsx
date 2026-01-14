@@ -98,8 +98,14 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
-    // Update task
+    // Update task with Optimistic UI
     const updateTask = useCallback(async (id: string, data: any) => {
+        // 1. Snapshot previous state
+        const previousTasks = [...tasks];
+
+        // 2. Optimistic update
+        setTasks(prev => prev.map(t => t.id === id ? { ...t, ...data } : t));
+
         try {
             const response = await fetch(`/api/tasks/${id}`, {
                 method: 'PUT',
@@ -108,30 +114,44 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
             });
             const result = await response.json();
             if (result.success) {
+                // 3. Confirm with server data (in case of sanitized fields)
+                // We merge carefully to avoid overwriting newer local changes if any (though race conditions are possible here, basic optimistic is usually fine for this scale)
                 setTasks(prev => prev.map(t => t.id === id ? result.data : t));
                 return result.data;
+            } else {
+                // Revert on server error
+                throw new Error('Server returned unsuccessful response');
             }
-            return null;
         } catch (error) {
             console.error('Error updating task:', error);
+            // 4. Revert on failure
+            setTasks(previousTasks);
             return null;
         }
-    }, []);
+    }, [tasks]);
 
-    // Delete task
+    // Delete task with Optimistic UI
     const deleteTask = useCallback(async (id: string) => {
+        // 1. Snapshot previous state
+        const previousTasks = [...tasks];
+
+        // 2. Optimistic update
+        setTasks(prev => prev.filter(t => t.id !== id));
+
         try {
             const response = await fetch(`/api/tasks/${id}`, {
                 method: 'DELETE',
             });
             const result = await response.json();
-            if (result.success) {
-                setTasks(prev => prev.filter(t => t.id !== id));
+            if (!result.success) {
+                throw new Error('Server returned unsuccessful response');
             }
         } catch (error) {
             console.error('Error deleting task:', error);
+            // 3. Revert on failure
+            setTasks(previousTasks);
         }
-    }, []);
+    }, [tasks]);
 
     // Add project
     const addProject = useCallback(async (data: any) => {

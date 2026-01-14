@@ -129,19 +129,19 @@ export function SortableTaskItem({
                             <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
                             <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20 p-1 flex flex-col min-w-[140px]">
                                 <span className="px-2 py-1 text-xs font-semibold text-gray-500">Mover</span>
-                                <button className="flex items-center gap-2 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm text-left"
+                                <button className="flex items-center gap-2 px-2 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm text-left"
                                     onClick={() => { onManualMove?.('up'); setShowMenu(false); }}>
                                     <ArrowUp size={14} /> Subir
                                 </button>
-                                <button className="flex items-center gap-2 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm text-left"
+                                <button className="flex items-center gap-2 px-2 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm text-left"
                                     onClick={() => { onManualMove?.('down'); setShowMenu(false); }}>
                                     <ArrowDown size={14} /> Bajar
                                 </button>
-                                <button className="flex items-center gap-2 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm text-left"
+                                <button className="flex items-center gap-2 px-2 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm text-left"
                                     onClick={() => { onManualMove?.('indent'); setShowMenu(false); }}>
                                     <Indent size={14} /> Anidar
                                 </button>
-                                <button className="flex items-center gap-2 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm text-left"
+                                <button className="flex items-center gap-2 px-2 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm text-left"
                                     onClick={() => { onManualMove?.('outdent'); setShowMenu(false); }}>
                                     <Outdent size={14} /> Desanidar
                                 </button>
@@ -149,15 +149,15 @@ export function SortableTaskItem({
                                 <div className="h-px bg-gray-100 dark:bg-gray-700 my-1" />
                                 <span className="px-2 py-1 text-xs font-semibold text-gray-500">Acciones</span>
 
-                                <button className="flex items-center gap-2 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm text-left text-green-600 dark:text-green-400"
+                                <button className="flex items-center gap-2 px-2 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm text-left text-green-600 dark:text-green-400"
                                     onClick={() => { onComplete(task.id); setShowMenu(false); }}>
                                     <CheckCircle2 size={14} /> Completar
                                 </button>
-                                <button className="flex items-center gap-2 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm text-left"
+                                <button className="flex items-center gap-2 px-2 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm text-left"
                                     onClick={() => { onEdit(task); setShowMenu(false); }}>
                                     <Edit size={14} /> Editar
                                 </button>
-                                <button className="flex items-center gap-2 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm text-left text-red-600 dark:text-red-400"
+                                <button className="flex items-center gap-2 px-2 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm text-left text-red-600 dark:text-red-400"
                                     onClick={() => { onDelete(task.id); setShowMenu(false); }}>
                                     <Trash2 size={14} /> Eliminar
                                 </button>
