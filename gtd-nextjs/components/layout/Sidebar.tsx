@@ -10,6 +10,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useTasks } from '@/contexts/TaskContext';
 import { useAuth } from '@/contexts/AuthContext';
+import VersionBadge from '@/components/VersionBadge';
 
 interface NavItemProps {
     href: string;
@@ -131,7 +132,7 @@ export default function Sidebar({ onNewTask }: SidebarProps) {
                 )}
             </nav>
 
-            <div className="p-4 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
+            <div className="p-4 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 flex flex-col gap-2">
                 <button
                     onClick={() => {
                         import('next-auth/react').then(({ signOut }) => signOut());
@@ -141,6 +142,10 @@ export default function Sidebar({ onNewTask }: SidebarProps) {
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:stroke-red-600 transition-colors"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" x2="9" y1="12" y2="12" /></svg>
                     <span className="flex-1 text-left">Cerrar Sesión</span>
                 </button>
+
+                <div className="text-center pb-1">
+                    <VersionBadge />
+                </div>
             </div>
         </aside>
     );
