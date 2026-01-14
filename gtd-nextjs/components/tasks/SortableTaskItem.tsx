@@ -107,7 +107,7 @@ export function SortableTaskItem({
             </div>
 
             {/* Actions Section */}
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+            <div className="flex items-center gap-1 ml-2 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                 {/* Mobile Actions Menu Trigger */}
                 <div className="relative">
                     <Button
@@ -144,6 +144,22 @@ export function SortableTaskItem({
                                 <button className="flex items-center gap-2 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm text-left"
                                     onClick={() => { onManualMove?.('outdent'); setShowMenu(false); }}>
                                     <Outdent size={14} /> Desanidar
+                                </button>
+
+                                <div className="h-px bg-gray-100 dark:bg-gray-700 my-1" />
+                                <span className="px-2 py-1 text-xs font-semibold text-gray-500">Acciones</span>
+
+                                <button className="flex items-center gap-2 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm text-left text-green-600 dark:text-green-400"
+                                    onClick={() => { onComplete(task.id); setShowMenu(false); }}>
+                                    <CheckCircle2 size={14} /> Completar
+                                </button>
+                                <button className="flex items-center gap-2 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm text-left"
+                                    onClick={() => { onEdit(task); setShowMenu(false); }}>
+                                    <Edit size={14} /> Editar
+                                </button>
+                                <button className="flex items-center gap-2 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm text-left text-red-600 dark:text-red-400"
+                                    onClick={() => { onDelete(task.id); setShowMenu(false); }}>
+                                    <Trash2 size={14} /> Eliminar
                                 </button>
                             </div>
                         </>
