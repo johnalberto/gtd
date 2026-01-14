@@ -29,6 +29,7 @@ export default function TaskModal({ isOpen, onClose, task, mode = 'create', init
         context_ids: [] as string[],
         due_date: '',
         due_time: '',
+        status: 'inbox',
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -61,6 +62,7 @@ export default function TaskModal({ isOpen, onClose, task, mode = 'create', init
                     due_date: dueDate ? dueDate.toISOString().split('T')[0] : '',
                     due_time: dueDate ? dueDate.toTimeString().slice(0, 5) : '',
                     context_ids: [],
+                    status: (task.status as string) || 'inbox',
                 });
                 setSubtasks([]);
 
@@ -76,7 +78,10 @@ export default function TaskModal({ isOpen, onClose, task, mode = 'create', init
                     setReminders([]);
                 }
             } else {
-                // Create mode: reset form regardless of previous state
+                // Create mode: reset form
+                // Default status logic: If initialProjectId is set, maybe 'next-actions'? 
+                // For now default to 'inbox' to be safe, user can change it.
+                // Or use the requested logic: No project -> Inbox.
                 setFormData({
                     title: '',
                     notes: '',
@@ -87,12 +92,26 @@ export default function TaskModal({ isOpen, onClose, task, mode = 'create', init
                     context_ids: [],
                     due_date: '',
                     due_time: '',
+                    status: initialProjectId ? 'next-actions' : 'inbox',
                 });
                 setSubtasks([]);
                 setReminders([]);
             }
         }
     }, [isOpen, isEditMode, task, initialProjectId, initialParentId]);
+
+    // Update status automatically when project selection changes (only if creating)
+    useEffect(() => {
+        if (!isEditMode && isOpen) {
+            if (!formData.project_id && formData.status !== 'waiting' && formData.status !== 'someday') {
+                setFormData(prev => ({ ...prev, status: 'inbox' }));
+            } else if (formData.project_id && formData.status === 'inbox') {
+                // If project is selected and status is still inbox, suggest next-actions
+                setFormData(prev => ({ ...prev, status: 'next-actions' }));
+            }
+        }
+    }, [formData.project_id, isEditMode, isOpen]);
+
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -131,7 +150,7 @@ export default function TaskModal({ isOpen, onClose, task, mode = 'create', init
                 parent_task_id: formData.parent_task_id || undefined,
                 context_ids: formData.context_ids.length > 0 ? formData.context_ids : undefined,
                 due_date: dueDateTime,
-                status: isEditMode ? undefined : (formData.is_actionable ? 'next-actions' : 'inbox'),
+                status: formData.status, // Use explicit status
                 reminders: remindersList
             };
 
@@ -158,6 +177,7 @@ export default function TaskModal({ isOpen, onClose, task, mode = 'create', init
                     context_ids: [],
                     due_date: '',
                     due_time: '',
+                    status: 'inbox',
                 });
 
                 onClose();
@@ -214,28 +234,29 @@ export default function TaskModal({ isOpen, onClose, task, mode = 'create', init
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={isEditMode ? "Editar Tarea" : "Nueva Tarea"}>
             <form onSubmit={handleSubmit} className="space-y-4">
-                {parentTask && (
-                    <div className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-3 py-2 rounded-md text-sm mb-4 border border-blue-200 dark:border-blue-800">
-                        ↳ Creando subtarea de: <strong>{parentTask.title}</strong>
-                    </div>
-                )}
-                <Input
-                    label="Título"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="¿Qué necesitas hacer?"
-                    required
-                    autoFocus
-                />
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Título
+                    </label>
+                    <input
+                        type="text"
+                        autoFocus
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 placeholder:text-slate-400"
+                        placeholder="¿Qué hay que hacer?"
+                        required
+                    />
+                </div>
 
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Notas
+                        Notas / Descripción
                     </label>
                     <textarea
-                        className="flex w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                         value={formData.notes}
                         onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                        className="flex min-h-[80px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 placeholder:text-slate-400"
                         placeholder="Detalles adicionales..."
                         rows={3}
                     />
@@ -260,25 +281,43 @@ export default function TaskModal({ isOpen, onClose, task, mode = 'create', init
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Proyecto
+                            Status
                         </label>
                         <select
                             className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                            value={formData.project_id}
-                            onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}
+                            value={formData.status}
+                            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                         >
-                            <option value="">Sin proyecto</option>
-                            {projects.map(project => (
-                                <option key={project.id} value={project.id}>
-                                    {project.name}
-                                </option>
-                            ))}
+                            <option value="inbox">Inbox</option>
+                            <option value="next-actions">Siguientes Acciones</option>
+                            <option value="waiting">En Espera</option>
+                            <option value="someday">Algún día</option>
                         </select>
-                        {projects.length === 0 && (
-                            <p className="text-xs text-gray-500 mt-1">No hay proyectos. Créalos en la sección Proyectos.</p>
-                        )}
                     </div>
                 </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Proyecto
+                    </label>
+                    <select
+                        className="flex h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                        value={formData.project_id}
+                        onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}
+                    >
+                        <option value="">Sin proyecto</option>
+                        {projects.map(project => (
+                            <option key={project.id} value={project.id}>
+                                {project.name}
+                            </option>
+                        ))}
+                    </select>
+                    {projects.length === 0 && (
+                        <p className="text-xs text-gray-500 mt-1">No hay proyectos. Créalos en la sección Proyectos.</p>
+                    )}
+                </div>
+
+                {/* ... rest of form ... */}
 
                 <div className="grid grid-cols-2 gap-4">
                     <Input

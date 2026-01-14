@@ -1,12 +1,18 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
+import { auth } from '@/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
+        const session = await auth();
+        if (!session?.user?.id) {
+            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+        }
+
         const now = new Date().toISOString();
-        console.log(`[Check Reminders] Checking at UTC: ${now}`);
+        console.log(`[Check Reminders] Checking at UTC: ${now} for user ${session.user.id}`);
 
         // 1. Check Due Tasks
         const { rows: dueTasks } = await sql`
@@ -15,6 +21,7 @@ export async function GET() {
             WHERE due_date <= ${now} 
               AND status != 'completed' 
               AND (notified IS NULL OR notified = FALSE)
+              AND user_id = ${session.user.id}
         `;
 
         // 2. Check Reminders
@@ -24,6 +31,7 @@ export async function GET() {
             JOIN tasks t ON r.task_id = t.id
             WHERE r.reminder_time <= ${now} 
               AND (r.notified IS NULL OR r.notified = FALSE)
+              AND t.user_id = ${session.user.id}
         `;
 
         console.log(`[Check Reminders] Found ${dueTasks.length} tasks and ${reminders.length} reminders`);

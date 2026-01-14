@@ -1,18 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTaskById, getTaskWithRelations, updateTask, deleteTask } from '@/lib/db';
+import { auth } from '@/auth';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  props: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { id } = await props.params;
     const searchParams = request.nextUrl.searchParams;
     const includeRelations = searchParams.get('relations') === 'true';
 
     const task = includeRelations
-      ? await getTaskWithRelations(id)
-      : await getTaskById(id);
+      ? await getTaskWithRelations(id, session.user.id)
+      : await getTaskById(id, session.user.id);
 
     if (!task) {
       return NextResponse.json(
@@ -33,10 +39,15 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  props: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { id } = await props.params;
     const body = await request.json();
 
     const task = await updateTask(id, {
@@ -52,7 +63,7 @@ export async function PUT(
       context_ids: body.context_ids,
       position: body.position,
       reminders: body.reminders ? body.reminders.map((r: string) => new Date(r)) : undefined,
-    });
+    }, session.user.id);
 
     return NextResponse.json({ success: true, data: task });
   } catch (error) {
@@ -66,11 +77,16 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  props: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
-    await deleteTask(id);
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { id } = await props.params;
+    await deleteTask(id, session.user.id);
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getProjects, createProject } from '@/lib/db';
+import { auth } from '@/auth';
 
 export async function GET() {
     try {
-        const projects = await getProjects();
+        const session = await auth();
+        if (!session?.user?.id) {
+            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const projects = await getProjects(session.user.id);
         return NextResponse.json({ success: true, data: projects });
     } catch (error) {
         console.error('Error fetching projects:', error);
@@ -16,6 +22,11 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
     try {
+        const session = await auth();
+        if (!session?.user?.id) {
+            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+        }
+
         const body = await request.json();
 
         if (!body.name) {
@@ -30,7 +41,7 @@ export async function POST(request: NextRequest) {
             description: body.description,
             color: body.color,
             status: body.status,
-        });
+        }, session.user.id);
 
         return NextResponse.json({ success: true, data: project }, { status: 201 });
     } catch (error) {

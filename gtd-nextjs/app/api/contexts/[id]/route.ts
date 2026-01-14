@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getContextById, updateContext, deleteContext } from '@/lib/db';
+import { auth } from '@/auth';
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    props: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { id } = await params;
-        const context = await getContextById(id);
+        const session = await auth();
+        if (!session?.user?.id) {
+            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const { id } = await props.params;
+        const context = await getContextById(id, session.user.id);
 
         if (!context) {
             return NextResponse.json(
@@ -28,16 +34,21 @@ export async function GET(
 
 export async function PUT(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    props: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { id } = await params;
+        const session = await auth();
+        if (!session?.user?.id) {
+            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const { id } = await props.params;
         const body = await request.json();
 
         const context = await updateContext(id, {
             name: body.name,
             icon: body.icon,
-        });
+        }, session.user.id);
 
         return NextResponse.json({ success: true, data: context });
     } catch (error) {
@@ -51,11 +62,16 @@ export async function PUT(
 
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    props: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { id } = await params;
-        await deleteContext(id);
+        const session = await auth();
+        if (!session?.user?.id) {
+            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const { id } = await props.params;
+        await deleteContext(id, session.user.id);
 
         return NextResponse.json({ success: true });
     } catch (error) {

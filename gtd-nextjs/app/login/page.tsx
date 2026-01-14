@@ -3,6 +3,7 @@
 import { signIn } from 'next-auth/react';
 import Button from '@/components/ui/Button';
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
@@ -91,6 +92,12 @@ export default function LoginPage() {
                         </div>
                     </div>
 
+                    <div className="flex justify-end relative z-10">
+                        <Link href="/forgot-password" className="text-xs text-blue-500 hover:text-blue-600 font-medium">
+                            ¿Olvidaste tu contraseña?
+                        </Link>
+                    </div>
+
                     <div className="flex h-8 items-end space-x-1" aria-live="polite" aria-atomic="true">
                         {errorMessage && (
                             <p className="text-sm text-red-500">{errorMessage}</p>
@@ -118,6 +125,11 @@ export default function LoginPage() {
                     >
                         Google
                     </Button>
+                    <div className="mt-4 text-center">
+                        <Link href="/register" className="text-sm text-blue-500 hover:text-blue-600">
+                            ¿No tienes cuenta? Regístrate
+                        </Link>
+                    </div>
                 </form>
             </div>
         </main>

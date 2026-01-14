@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Menu, Settings } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 
 interface HeaderProps {
     onMenuClick: () => void;
@@ -9,6 +10,17 @@ interface HeaderProps {
 }
 
 export default function Header({ onMenuClick, onSettingsClick }: HeaderProps) {
+    const { data: session } = useSession();
+
+    // Calculate initials
+    const name = session?.user?.name || '';
+    const initials = name
+        .split(' ')
+        .map((n) => n[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase() || 'U';
+
     return (
         <header className="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 lg:px-6">
             <button
@@ -19,8 +31,12 @@ export default function Header({ onMenuClick, onSettingsClick }: HeaderProps) {
             </button>
 
             <div className="flex items-center gap-4 ml-auto">
-                <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-sm font-medium text-blue-700 dark:text-blue-300">
-                    JC
+                <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-sm font-medium text-blue-700 dark:text-blue-300 overflow-hidden">
+                    {session?.user?.image ? (
+                        <img src={session.user.image} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                        initials
+                    )}
                 </div>
                 <button
                     onClick={onSettingsClick}

@@ -8,11 +8,14 @@ import Badge from '@/components/ui/Badge';
 import { Trash2, Edit, CheckCircle2 } from 'lucide-react';
 import { formatDate, getPriorityColor } from '@/lib/utils';
 
+import TaskModal from '@/components/modals/TaskModal';
+
 export default function InboxPage() {
     const { tasks, updateTask, deleteTask } = useTasks();
     const [selectedTask, setSelectedTask] = useState<string | null>(null);
 
     const inboxTasks = tasks.filter(t => t.status === 'inbox' && !t.project_id);
+    const taskToEdit = selectedTask ? tasks.find(t => t.id === selectedTask) : null;
 
     const handleCompleteTask = async (taskId: string) => {
         await updateTask(taskId, {
@@ -108,6 +111,15 @@ export default function InboxPage() {
                     )}
                 </div>
             </div>
+
+            {selectedTask && (
+                <TaskModal
+                    isOpen={!!selectedTask}
+                    onClose={() => setSelectedTask(null)}
+                    task={taskToEdit}
+                    mode="edit"
+                />
+            )}
         </AppLayout>
     );
 }

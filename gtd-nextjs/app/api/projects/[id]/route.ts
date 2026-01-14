@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getProjectById, updateProject, deleteProject } from '@/lib/db';
+import { auth } from '@/auth';
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    props: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { id } = await params;
-        const project = await getProjectById(id);
+        const session = await auth();
+        if (!session?.user?.id) {
+            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const { id } = await props.params;
+        const project = await getProjectById(id, session.user.id);
 
         if (!project) {
             return NextResponse.json(
@@ -28,10 +34,15 @@ export async function GET(
 
 export async function PUT(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    props: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { id } = await params;
+        const session = await auth();
+        if (!session?.user?.id) {
+            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const { id } = await props.params;
         const body = await request.json();
 
         const project = await updateProject(id, {
@@ -39,7 +50,7 @@ export async function PUT(
             description: body.description,
             color: body.color,
             status: body.status,
-        });
+        }, session.user.id);
 
         return NextResponse.json({ success: true, data: project });
     } catch (error) {
@@ -53,11 +64,16 @@ export async function PUT(
 
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    props: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { id } = await params;
-        await deleteProject(id);
+        const session = await auth();
+        if (!session?.user?.id) {
+            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const { id } = await props.params;
+        await deleteProject(id, session.user.id);
 
         return NextResponse.json({ success: true });
     } catch (error) {

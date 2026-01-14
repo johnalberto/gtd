@@ -18,7 +18,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     const router = useRouter();
 
     return (
-        <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden">
+        <div className="flex h-screen bg-background dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-hidden">
             {/* Mobile Sidebar Overlay */}
             {isMobileMenuOpen && (
                 <div

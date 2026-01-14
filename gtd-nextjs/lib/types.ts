@@ -4,8 +4,12 @@ export interface User {
   id: string;
   email: string;
   name: string | null;
+  image?: string | null;
   role: 'admin' | 'user';
   password?: string;
+  is_active: boolean;
+  reset_token?: string | null;
+  reset_token_expiry?: Date | null;
   created_at: Date;
 }
 

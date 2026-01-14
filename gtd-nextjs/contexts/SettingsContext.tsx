@@ -1,8 +1,13 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { useSession } from 'next-auth/react';
 
-export type SoundType = 'beep' | 'chime' | 'crystal' | 'rise' | 'drop' | 'phone' | 'siren' | 'pluck' | 'laser' | 'success' | 'warning' | 'none';
+export type SoundType =
+    | 'beep' | 'chime' | 'crystal' | 'rise' | 'drop'
+    | 'phone' | 'siren' | 'pluck' | 'laser' | 'success' | 'warning'
+    | 'modern-1' | 'modern-2' | 'galaxy' | 'happy' | 'arcade'
+    | 'none';
 
 interface SettingsContextType {
     notificationsEnabled: boolean;
@@ -20,40 +25,97 @@ interface SettingsContextType {
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
+    const { data: session } = useSession();
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
     const [notificationSound, setNotificationSound] = useState<SoundType>('beep');
     const [volume, setVolume] = useState(0.5);
     const [notificationDuration, setNotificationDuration] = useState(5); // Seconds
 
-    // Load settings from localStorage
-    useEffect(() => {
-        const storedEnabled = localStorage.getItem('gtd_notifications_enabled');
-        const storedSound = localStorage.getItem('gtd_notification_sound');
-        const storedVolume = localStorage.getItem('gtd_notification_volume');
-        const storedDuration = localStorage.getItem('gtd_notification_duration');
+    // Use refs to track if initial load happened to avoid overwriting remote with local defaults
+    const isLoaded = useRef(false);
 
-        if (storedEnabled !== null) setNotificationsEnabled(storedEnabled === 'true');
-        if (storedSound) setNotificationSound(storedSound as SoundType);
-        if (storedVolume) setVolume(parseFloat(storedVolume));
-        if (storedDuration) setNotificationDuration(parseInt(storedDuration));
-    }, []);
-
-    // Save settings
+    // Load settings
     useEffect(() => {
-        localStorage.setItem('gtd_notifications_enabled', String(notificationsEnabled));
-    }, [notificationsEnabled]);
+        const loadSettings = async () => {
+            // Try load from API if logged in
+            if (session?.user) {
+                try {
+                    const res = await fetch('/api/settings');
+                    if (res.ok) {
+                        const data = await res.json();
+                        const s = data.settings;
+                        if (s) {
+                            if (s.notificationsEnabled !== undefined) setNotificationsEnabled(s.notificationsEnabled);
+                            if (s.notificationSound) setNotificationSound(s.notificationSound);
+                            if (s.volume !== undefined) setVolume(s.volume);
+                            if (s.notificationDuration !== undefined) setNotificationDuration(s.notificationDuration);
+                            isLoaded.current = true;
+                            return; // Success, skip localStorage
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error loading settings from API', e);
+                }
+            }
+
+            // Fallback to localStorage
+            const storedEnabled = localStorage.getItem('gtd_notifications_enabled');
+            const storedSound = localStorage.getItem('gtd_notification_sound');
+            const storedVolume = localStorage.getItem('gtd_notification_volume');
+            const storedDuration = localStorage.getItem('gtd_notification_duration');
+
+            if (storedEnabled !== null) setNotificationsEnabled(storedEnabled === 'true');
+            if (storedSound) setNotificationSound(storedSound as SoundType);
+            if (storedVolume) setVolume(parseFloat(storedVolume));
+            if (storedDuration) setNotificationDuration(parseInt(storedDuration));
+            isLoaded.current = true;
+        };
+
+        loadSettings();
+    }, [session]);
+
+    // Save settings (Debounce could be better but direct for now)
+    const saveSettings = useCallback(async (newSettings: any) => {
+        // Always save to localStorage
+        if (newSettings.notificationsEnabled !== undefined) localStorage.setItem('gtd_notifications_enabled', String(newSettings.notificationsEnabled));
+        if (newSettings.notificationSound) localStorage.setItem('gtd_notification_sound', newSettings.notificationSound);
+        if (newSettings.volume !== undefined) localStorage.setItem('gtd_notification_volume', String(newSettings.volume));
+        if (newSettings.notificationDuration !== undefined) localStorage.setItem('gtd_notification_duration', String(newSettings.notificationDuration));
+
+        // Save to API if logged in and loaded
+        if (session?.user && isLoaded.current) {
+            try {
+                await fetch('/api/settings', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newSettings),
+                });
+            } catch (e) {
+                console.error('Error saving settings to API', e);
+            }
+        }
+    }, [session]);
+
+    // Effect to trigger save when state changes
+    useEffect(() => {
+        if (!isLoaded.current) return;
+        saveSettings({ notificationsEnabled });
+    }, [notificationsEnabled, saveSettings]);
 
     useEffect(() => {
-        localStorage.setItem('gtd_notification_sound', notificationSound);
-    }, [notificationSound]);
+        if (!isLoaded.current) return;
+        saveSettings({ notificationSound });
+    }, [notificationSound, saveSettings]);
 
     useEffect(() => {
-        localStorage.setItem('gtd_notification_volume', String(volume));
-    }, [volume]);
+        if (!isLoaded.current) return;
+        saveSettings({ volume });
+    }, [volume, saveSettings]);
 
     useEffect(() => {
-        localStorage.setItem('gtd_notification_duration', String(notificationDuration));
-    }, [notificationDuration]);
+        if (!isLoaded.current) return;
+        saveSettings({ notificationDuration });
+    }, [notificationDuration, saveSettings]);
 
     const requestPermission = useCallback(async () => {
         if (!('Notification' in window)) return;
@@ -80,7 +142,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                 if (time >= endTime) return;
 
                 const osc = ctx.createOscillator();
-                const osc2 = ctx.createOscillator(); // For complex sounds
+                const osc2 = ctx.createOscillator();
+                const osc3 = ctx.createOscillator();
 
                 osc.connect(gainNode);
 
@@ -91,33 +154,101 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                         osc.frequency.exponentialRampToValueAtTime(400, time + 0.1);
                         osc.start(time);
                         osc.stop(time + 0.15);
-                        // Loop every 0.5s
                         if (time + 0.5 < endTime) setTimeout(() => playSound(time + 0.5), (time + 0.5 - ctx.currentTime) * 1000);
                         break;
+                    case 'modern-1':
+                        // Soft synth pluck
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(440, time);
+                        osc.frequency.linearRampToValueAtTime(880, time + 0.05);
+                        gainNode.gain.setValueAtTime(volume * 0.8, time);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
+                        osc.start(time);
+                        osc.stop(time + 0.3);
+
+                        // Harmony
+                        osc2.connect(gainNode);
+                        osc2.type = 'sine';
+                        osc2.frequency.setValueAtTime(554.37, time); // C#
+                        osc2.start(time);
+                        osc2.stop(time + 0.3);
+
+                        if (time + 1 < endTime) setTimeout(() => playSound(time + 1), (time + 1 - ctx.currentTime) * 1000);
+                        break;
+                    case 'modern-2':
+                        // Sci-fi sweep
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(200, time);
+                        osc.frequency.exponentialRampToValueAtTime(1000, time + 0.2);
+                        osc.frequency.exponentialRampToValueAtTime(200, time + 0.4);
+                        osc.start(time);
+                        osc.stop(time + 0.4);
+                        if (time + 1.5 < endTime) setTimeout(() => playSound(time + 1.5), (time + 1.5 - ctx.currentTime) * 1000);
+                        break;
+                    case 'galaxy':
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(800, time);
+                        osc.frequency.linearRampToValueAtTime(1200, time + 0.1);
+                        // Very fast tremolo
+                        const lfo = ctx.createOscillator();
+                        lfo.frequency.value = 20;
+                        const lfoGain = ctx.createGain();
+                        lfoGain.gain.value = 500;
+                        lfo.connect(lfoGain);
+                        lfoGain.connect(osc.frequency);
+                        lfo.start(time);
+                        lfo.stop(time + 1.0);
+                        osc.start(time);
+                        osc.stop(time + 1.0);
+                        if (time + 2 < endTime) setTimeout(() => playSound(time + 2), (time + 2 - ctx.currentTime) * 1000);
+                        break;
+                    case 'happy':
+                        // Major Triad Arpeggio (Fast)
+                        const notes = [523.25, 659.25, 783.99, 1046.50]; // C E G C
+                        notes.forEach((freq, i) => {
+                            const o = ctx.createOscillator();
+                            const g = ctx.createGain();
+                            o.connect(g);
+                            g.connect(ctx.destination);
+                            o.type = 'sine';
+                            o.frequency.value = freq;
+                            g.gain.setValueAtTime(volume * 0.5, time + i * 0.08);
+                            g.gain.exponentialRampToValueAtTime(0.01, time + i * 0.08 + 0.3);
+                            o.start(time + i * 0.08);
+                            o.stop(time + i * 0.08 + 0.3);
+                        });
+                        if (time + 2 < endTime) setTimeout(() => playSound(time + 2), (time + 2 - ctx.currentTime) * 1000);
+                        break;
+                    case 'arcade':
+                        osc.type = 'square';
+                        osc.frequency.setValueAtTime(220, time);
+                        osc.frequency.setValueAtTime(440, time + 0.1);
+                        osc.frequency.setValueAtTime(880, time + 0.2);
+                        osc.start(time);
+                        osc.stop(time + 0.3);
+                        if (time + 0.5 < endTime) setTimeout(() => playSound(time + 0.5), (time + 0.5 - ctx.currentTime) * 1000);
+                        break;
+                    // ... existing cases ...
                     case 'chime':
                         osc.type = 'triangle';
                         osc.frequency.setValueAtTime(600, time);
                         osc.frequency.linearRampToValueAtTime(1000, time + 0.2);
                         osc.start(time);
                         osc.stop(time + 1.0);
-                        // Loop every 2s
                         if (time + 2 < endTime) setTimeout(() => playSound(time + 2), (time + 2 - ctx.currentTime) * 1000);
                         break;
                     case 'crystal':
                         osc.type = 'sine';
                         osc.frequency.setValueAtTime(1200, time);
                         osc.frequency.exponentialRampToValueAtTime(800, time + 0.5);
-
                         osc2.connect(gainNode);
                         osc2.type = 'sine';
                         osc2.frequency.setValueAtTime(1800, time);
                         osc2.frequency.exponentialRampToValueAtTime(1200, time + 0.5);
-
                         osc.start(time);
                         osc2.start(time);
                         osc.stop(time + 0.5);
                         osc2.stop(time + 0.5);
-                        // Loop every 1s
                         if (time + 1 < endTime) setTimeout(() => playSound(time + 1), (time + 1 - ctx.currentTime) * 1000);
                         break;
                     case 'rise':
@@ -128,7 +259,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                         gainNode.gain.linearRampToValueAtTime(0, time + 0.5);
                         osc.start(time);
                         osc.stop(time + 0.5);
-                        // Loop every 1s
                         if (time + 1 < endTime) setTimeout(() => playSound(time + 1), (time + 1 - ctx.currentTime) * 1000);
                         break;
                     case 'drop':
@@ -140,22 +270,16 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                         if (time + 1 < endTime) setTimeout(() => playSound(time + 1), (time + 1 - ctx.currentTime) * 1000);
                         break;
                     case 'phone':
-                        // Dual tone 350 + 440 (Standard dial tone approx)
                         osc.frequency.setValueAtTime(350, time);
                         osc2.connect(gainNode);
                         osc2.frequency.setValueAtTime(440, time);
                         osc.start(time);
                         osc2.start(time);
-                        // Ring-Ring pattern? Just continuous tone for phone usually, or pulse
-                        // Let's do pulse: 0.4s on, 0.2s off, 0.4s on, 2s off
-                        // Complex Pattern not easily done with simple recursion.
-                        // Let's just do a 1s ring
                         osc.stop(time + 1);
                         osc2.stop(time + 1);
                         if (time + 2 < endTime) setTimeout(() => playSound(time + 2), (time + 2 - ctx.currentTime) * 1000);
                         break;
                     case 'siren':
-                        // LFO effect manually
                         osc.type = 'triangle';
                         osc.frequency.setValueAtTime(600, time);
                         osc.frequency.linearRampToValueAtTime(800, time + 0.5);
@@ -166,7 +290,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                         break;
                     case 'pluck':
                         osc.type = 'sawtooth';
-                        // Low pass filter would be nice but expensive to setup. Just quick decay.
                         osc.frequency.setValueAtTime(440, time);
                         gainNode.gain.setValueAtTime(volume, time);
                         gainNode.gain.exponentialRampToValueAtTime(0.01, time + 0.5);
@@ -183,7 +306,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                         if (time + 0.3 < endTime) setTimeout(() => playSound(time + 0.3), (time + 0.3 - ctx.currentTime) * 1000);
                         break;
                     case 'success':
-                        // Arpeggio C-E-G
                         osc.type = 'sine';
                         osc.frequency.setValueAtTime(523.25, time); // C5
                         osc.frequency.setValueAtTime(659.25, time + 0.1); // E5
@@ -197,7 +319,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                         osc.frequency.setValueAtTime(200, time);
                         osc2.connect(gainNode);
                         osc2.type = 'sawtooth';
-                        osc2.frequency.setValueAtTime(205, time); // Detuned
+                        osc2.frequency.setValueAtTime(205, time);
                         osc.start(time);
                         osc2.start(time);
                         osc.stop(time + 0.5);
@@ -239,3 +361,4 @@ export function useSettings() {
     }
     return context;
 }
+

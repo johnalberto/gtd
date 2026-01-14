@@ -82,6 +82,24 @@ export default function UsersPage() {
         }
     };
 
+    const handleUpdateUser = async (id: string, updates: Partial<User>) => {
+        try {
+            const response = await fetch(`/api/admin/users/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updates),
+            });
+            const result = await response.json();
+            if (result.success) {
+                setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
+            } else {
+                alert(result.error);
+            }
+        } catch (error) {
+            console.error('Failed to update user:', error);
+        }
+    };
+
     if (isLoading || loadingUsers) {
         return (
             <AppLayout>
@@ -114,6 +132,7 @@ export default function UsersPage() {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                             </tr>
                         </thead>
@@ -127,15 +146,24 @@ export default function UsersPage() {
                                         <div className="text-sm text-gray-500 dark:text-gray-400">{u.email}</div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        {u.role === 'admin' ? (
-                                            <Badge className="bg-purple-100 text-purple-800 border-purple-200">
-                                                <Shield size={12} className="mr-1" /> Admin
-                                            </Badge>
-                                        ) : (
-                                            <Badge variant="secondary" className="text-gray-600">
-                                                <UserIcon size={12} className="mr-1" /> User
-                                            </Badge>
-                                        )}
+                                        <select
+                                            value={u.role}
+                                            onChange={(e) => handleUpdateUser(u.id, { role: e.target.value as 'admin' | 'user' })}
+                                            className="text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600"
+                                            disabled={u.id === user?.id}
+                                        >
+                                            <option value="user">User</option>
+                                            <option value="admin">Admin</option>
+                                        </select>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <button
+                                            onClick={() => handleUpdateUser(u.id, { is_active: !u.is_active })}
+                                            className={`px-2 py-1 text-xs rounded-full font-semibold ${u.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                                            disabled={u.id === user?.id}
+                                        >
+                                            {u.is_active ? 'Activo' : 'Inactivo'}
+                                        </button>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <button

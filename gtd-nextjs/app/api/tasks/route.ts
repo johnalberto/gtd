@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTasks, createTask } from '@/lib/db';
+import { auth } from '@/auth';
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get('status') || undefined;
     const project_id = searchParams.get('project_id') || undefined;
@@ -11,7 +17,7 @@ export async function GET(request: NextRequest) {
       : undefined;
 
     const filters = { status, project_id, due_date };
-    const tasks = await getTasks(undefined, filters);
+    const tasks = await getTasks(session.user.id, filters);
 
     return NextResponse.json({ success: true, data: tasks });
   } catch (error) {
@@ -25,6 +31,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     console.log('API POST /tasks received body:', JSON.stringify(body, null, 2));
 
@@ -46,7 +57,7 @@ export async function POST(request: NextRequest) {
       due_date: body.due_date ? new Date(body.due_date) : undefined,
       context_ids: body.context_ids,
       reminders: body.reminders ? body.reminders.map((r: string) => new Date(r)) : undefined,
-    });
+    }, session.user.id);
 
     return NextResponse.json({ success: true, data: task }, { status: 201 });
   } catch (error) {

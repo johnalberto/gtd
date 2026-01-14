@@ -7,13 +7,17 @@ export const authConfig = {
     callbacks: {
         authorized({ auth, request: { nextUrl } }) {
             const isLoggedIn = !!auth?.user;
-            const isOnDashboard = nextUrl.pathname.startsWith('/') && !nextUrl.pathname.startsWith('/login') && !nextUrl.pathname.startsWith('/register');
-            const isOnLogin = nextUrl.pathname.startsWith('/login');
+            const isOnDashboard = nextUrl.pathname.startsWith('/')
+                && !nextUrl.pathname.startsWith('/login')
+                && !nextUrl.pathname.startsWith('/register')
+                && !nextUrl.pathname.startsWith('/forgot-password')
+                && !nextUrl.pathname.startsWith('/reset-password');
+            const isOnAuth = nextUrl.pathname.startsWith('/login') || nextUrl.pathname.startsWith('/register');
 
             if (isOnDashboard) {
                 if (isLoggedIn) return true;
                 return false; // Redirect unauthenticated users to login page
-            } else if (isLoggedIn && isOnLogin) {
+            } else if (isLoggedIn && isOnAuth) {
                 return Response.redirect(new URL('/', nextUrl));
             }
             return true;
@@ -21,6 +25,9 @@ export const authConfig = {
         async session({ session, token }) {
             if (token.sub && session.user) {
                 session.user.id = token.sub;
+            }
+            if (token.picture && session.user) {
+                session.user.image = token.picture;
             }
             if (token.role && session.user) {
                 // @ts-ignore

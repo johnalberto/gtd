@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getContexts, createContext } from '@/lib/db';
+import { auth } from '@/auth';
 
 export async function GET() {
     try {
-        const contexts = await getContexts();
+        const session = await auth();
+        if (!session?.user?.id) {
+            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const contexts = await getContexts(session.user.id);
         return NextResponse.json({ success: true, data: contexts });
     } catch (error) {
         console.error('Error fetching contexts:', error);
@@ -16,6 +22,11 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
     try {
+        const session = await auth();
+        if (!session?.user?.id) {
+            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+        }
+
         const body = await request.json();
 
         if (!body.name) {
@@ -28,7 +39,7 @@ export async function POST(request: NextRequest) {
         const context = await createContext({
             name: body.name,
             icon: body.icon,
-        });
+        }, session.user.id);
 
         return NextResponse.json({ success: true, data: context }, { status: 201 });
     } catch (error) {

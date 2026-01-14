@@ -6,6 +6,11 @@ CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email VARCHAR(255) UNIQUE NOT NULL,
   name VARCHAR(255),
+  password VARCHAR(255),
+  role VARCHAR(50) DEFAULT 'user',
+  is_active BOOLEAN DEFAULT TRUE,
+  reset_token VARCHAR(255),
+  reset_token_expiry TIMESTAMP,
   created_at TIMESTAMP DEFAULT NOW()
 );
 
