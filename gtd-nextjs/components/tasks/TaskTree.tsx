@@ -213,6 +213,67 @@ export default function TaskTree({ tasks, onUpdateTask, onDeleteTask, onEditTask
         }
     };
 
+    const handleManualMove = async (taskId: string, action: 'up' | 'down' | 'indent' | 'outdent') => {
+        const item = items.find(i => i.id === taskId);
+        if (!item) return;
+
+        // Find siblings
+        const siblings = items.filter(i => i.parentId === item.parentId)
+            .sort((a, b) => (a.task.position || 0) - (b.task.position || 0));
+        const index = siblings.findIndex(i => i.id === taskId);
+
+        if (action === 'up' || action === 'down') {
+            if (action === 'up' && index > 0) {
+                // Swap with prev
+                const prev = siblings[index - 1];
+                // Swap positions technically, but let's just use arrayMove logic calc
+                const newPos = prev.task.position || 0;
+                // To move "before" prev, we need a pos smaller than prev. 
+                // Or we can just swap their positions values if we want simple swap.
+                // But let's try to find a gap or just re-rank.
+                // Easiest: Swap position values with sibling.
+                await onUpdateTask(taskId, { position: prev.task.position });
+                await onUpdateTask(prev.id, { position: item.task.position });
+                // Note: Ideally we use a robust position calc, but swapping is okay for defined lists.
+                // Actually, if we just set our pos to prev.pos - 1, it might conflict.
+                // Better: (prev.prev.pos + prev.pos) / 2
+                // Let's use the arrayMove logic we have in dragEnd? 
+                // Actually, swapping position values is precise if they are distinct.
+            }
+            if (action === 'down' && index < siblings.length - 1) {
+                const next = siblings[index + 1];
+                await onUpdateTask(taskId, { position: next.task.position });
+                await onUpdateTask(next.id, { position: item.task.position });
+            }
+        }
+
+        if (action === 'indent') {
+            if (index > 0) {
+                const prev = siblings[index - 1];
+                // Make 'prev' the parent
+                await onUpdateTask(taskId, { parent_task_id: prev.id });
+                if (!expandedIds.includes(prev.id)) {
+                    setExpandedIds(curr => [...curr, prev.id]);
+                }
+            }
+        }
+
+        if (action === 'outdent') {
+            if (item.parentId) {
+                const currentParent = items.find(i => i.id === item.parentId);
+                if (currentParent) {
+                    const grandParentId = currentParent.parentId;
+                    // Move to grandparent, after currentParent
+                    // Position should be > currentParent
+                    await onUpdateTask(taskId, {
+                        parent_task_id: grandParentId,
+                        position: (currentParent.task.position || 0) + 100 // Rough approx
+                    });
+                }
+            }
+        }
+    };
+
     const getDragOverlayContent = () => {
         if (!activeId) return null;
 
@@ -268,6 +329,7 @@ export default function TaskTree({ tasks, onUpdateTask, onDeleteTask, onEditTask
                                 hasChildren={tasks.some(t => t.parent_task_id === item.id)}
                                 onSelect={() => onSelectTask?.(selectedTaskId === item.id ? null : item.id)}
                                 isSelected={selectedTaskId === item.id}
+                                onManualMove={(action) => handleManualMove(item.id, action)}
                             />
                         ))
                     )}

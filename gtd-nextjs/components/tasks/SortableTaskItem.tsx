@@ -6,9 +6,10 @@ import { CSS } from '@dnd-kit/utilities';
 import { Task } from '@/lib/types';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
-import { CheckCircle2, Edit, Trash2, GripVertical, ChevronDown, ChevronRight } from 'lucide-react';
+import { CheckCircle2, Edit, Trash2, GripVertical, ChevronDown, ChevronRight, MoreVertical, ArrowUp, ArrowDown, Indent, Outdent } from 'lucide-react';
 import { formatDate, getPriorityColor } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { useState } from 'react';
 
 interface SortableTaskItemProps {
     task: Task;
@@ -21,6 +22,7 @@ interface SortableTaskItemProps {
     hasChildren: boolean;
     onSelect?: () => void;
     isSelected?: boolean;
+    onManualMove?: (action: 'up' | 'down' | 'indent' | 'outdent') => void;
 }
 
 export function SortableTaskItem({
@@ -33,7 +35,8 @@ export function SortableTaskItem({
     onToggleExpand,
     hasChildren,
     onSelect,
-    isSelected
+    isSelected,
+    onManualMove
 }: SortableTaskItemProps) {
     const {
         attributes,
@@ -52,6 +55,8 @@ export function SortableTaskItem({
         opacity: isDragging ? 0.5 : 1,
     };
 
+    const [showMenu, setShowMenu] = useState(false);
+
     return (
         <div
             ref={setNodeRef}
@@ -62,7 +67,7 @@ export function SortableTaskItem({
                 onSelect?.();
             }}
             className={cn(
-                "group flex items-center gap-2 py-2 px-3 rounded-lg border transition-shadow mb-2 cursor-pointer",
+                "group flex items-center gap-2 py-2 px-3 rounded-lg border transition-shadow mb-2 cursor-pointer relative",
                 isSelected
                     ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-500"
                     : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-sm",
@@ -70,13 +75,13 @@ export function SortableTaskItem({
                 isOver && !isDragging && !isSelected && "bg-blue-50 dark:bg-blue-900/40 border-blue-500 ring-1 ring-blue-500"
             )}
         >
-            <div {...attributes} {...listeners} className="cursor-grab text-gray-400 hover:text-gray-600">
-                <GripVertical size={16} />
+            <div {...attributes} {...listeners} className="cursor-grab text-gray-400 hover:text-gray-600 p-1 -ml-1 touch-none">
+                <GripVertical size={20} />
             </div>
 
             <div className="flex-none w-6 flex items-center justify-center">
                 {hasChildren ? (
-                    <button onClick={() => onToggleExpand(task.id)} className="text-gray-500 hover:text-gray-700">
+                    <button onClick={() => onToggleExpand(task.id)} className="text-gray-500 hover:text-gray-700 p-1">
                         {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                     </button>
                 ) : <div className="w-4" />}
@@ -101,11 +106,54 @@ export function SortableTaskItem({
                 )}
             </div>
 
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {/* Actions Section */}
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                {/* Mobile Actions Menu Trigger */}
+                <div className="relative">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 lg:hidden" // Visible only on mobile/tablet via loop? Actually group-hover works on mobile with tap. 
+                        // But let's make it always visible on small screens? No, stick to consistent UI.
+                        // Ideally we want a button that is always accessible on mobile.
+                        // On mobile, hover doesn't exist, so this entire block might be hidden unless tapped?
+                        // 'group-hover' on mobile is sticky on tap.
+                        onClick={() => setShowMenu(!showMenu)}
+                        title="Opciones"
+                    >
+                        <MoreVertical size={16} />
+                    </Button>
+
+                    {showMenu && (
+                        <>
+                            <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
+                            <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20 p-1 flex flex-col min-w-[140px]">
+                                <span className="px-2 py-1 text-xs font-semibold text-gray-500">Mover</span>
+                                <button className="flex items-center gap-2 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm text-left"
+                                    onClick={() => { onManualMove?.('up'); setShowMenu(false); }}>
+                                    <ArrowUp size={14} /> Subir
+                                </button>
+                                <button className="flex items-center gap-2 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm text-left"
+                                    onClick={() => { onManualMove?.('down'); setShowMenu(false); }}>
+                                    <ArrowDown size={14} /> Bajar
+                                </button>
+                                <button className="flex items-center gap-2 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm text-left"
+                                    onClick={() => { onManualMove?.('indent'); setShowMenu(false); }}>
+                                    <Indent size={14} /> Anidar
+                                </button>
+                                <button className="flex items-center gap-2 px-2 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm text-left"
+                                    onClick={() => { onManualMove?.('outdent'); setShowMenu(false); }}>
+                                    <Outdent size={14} /> Desanidar
+                                </button>
+                            </div>
+                        </>
+                    )}
+                </div>
+
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8"
+                    className="h-8 w-8 hidden lg:inline-flex"
                     onClick={() => onComplete(task.id)}
                     title="Completar"
                 >
@@ -114,7 +162,7 @@ export function SortableTaskItem({
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8"
+                    className="h-8 w-8 hidden lg:inline-flex"
                     onClick={() => onEdit(task)}
                     title="Editar"
                 >
@@ -123,7 +171,7 @@ export function SortableTaskItem({
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8"
+                    className="h-8 w-8 hidden lg:inline-flex"
                     onClick={() => onDelete(task.id)}
                     title="Eliminar"
                 >
