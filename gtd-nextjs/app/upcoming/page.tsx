@@ -84,8 +84,8 @@ export default function UpcomingPage() {
                                 </Badge>
                                 {task.due_date && (
                                     <span className={`text-xs ${new Date(task.due_date) < today && task.status !== 'completed'
-                                            ? 'text-red-500 font-semibold'
-                                            : 'text-gray-500'
+                                        ? 'text-red-500 font-semibold'
+                                        : 'text-gray-500'
                                         }`}>
                                         Vence: {formatDate(task.due_date)}
                                     </span>
@@ -139,7 +139,7 @@ export default function UpcomingPage() {
                     <section>
                         <h2 className="text-xl font-semibold text-red-600 dark:text-red-400 mb-4 flex items-center gap-2">
                             Vencidas
-                            <Badge variant="destructive">{overdueTasks.length}</Badge>
+                            <Badge variant="danger">{overdueTasks.length}</Badge>
                         </h2>
                         <TaskList tasks={overdueTasks} />
                     </section>
