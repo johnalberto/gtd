@@ -16,6 +16,7 @@ export const metadata: Metadata = {
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ReminderMonitor from "@/components/ReminderMonitor";
+import FloatingActionButton from "@/components/ui/FloatingActionButton";
 
 export default function RootLayout({
   children,
@@ -30,6 +31,7 @@ export default function RootLayout({
             <TaskProvider>
               <ReminderMonitor />
               {children}
+              <FloatingActionButton />
             </TaskProvider>
           </SettingsProvider>
         </AuthProvider>
