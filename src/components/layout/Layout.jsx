@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
     Inbox, Sun, Calendar, CheckSquare, Layers,
-    Tag, Archive, Clock, Menu, PlusCircle, Settings
+    Tag, Archive, Clock, Menu, PlusCircle, Settings, Plus
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useTasks } from '../../context/TaskContext';
@@ -151,6 +151,16 @@ export default function Layout({ children }) {
                     </div>
                 </main>
             </div>
+
+            {/* Floating Action Button */}
+            <button
+                onClick={handleNewTaskClick}
+                className="fixed bottom-6 right-6 md:bottom-8 md:right-8 z-50 p-4 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 hover:scale-105 transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                title="Nueva Tarea"
+                aria-label="Nueva Tarea"
+            >
+                <Plus size={24} strokeWidth={2.5} />
+            </button>
         </div>
     );
 }
